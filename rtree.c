@@ -9,7 +9,7 @@
 #define DIMS 2
 #define MAX_ENTRIES 64
 #define MIN_ENTRIES_PERCENTAGE 10
-#define FAST_CHOOSER 2  // 0 = off , 1 == fast, 2 == faster
+#define FAST_CHOOSER 2  // 0 - off , 1 - fast, 2 - faster
 
 #define panic(_msg_) { \
     fprintf(stderr, "panic: %s (%s:%d)\n", (_msg_), __FILE__, __LINE__); \
@@ -150,7 +150,7 @@ void node_qsort(struct node *node, int s, int e, int axis, bool rev, bool max) {
     if (nrects < 2) { return; }
     int left = 0;
     int right = nrects-1;
-    int pivot = nrects / 2; // rand and mod not worth it
+    int pivot = nrects / 2;
     node_swap(node, s+pivot, s+right);
     struct rect *rects = &node->rects[s];
     if (!rev) {
@@ -243,8 +243,7 @@ struct node *node_split_largest_axis_edge_snap(struct rtree *tr, struct rect *re
             i--;
         }
     }
-    // Make sure that both left and right nodes have at least
-    // min_entries by moving items into underflowed nodes
+    // make sure that both left and right nodes have at least min_entries by moving items into underflowed nodes
     if (left->count < MIN_ENTRIES) {
         // reverse sort by min axis
         node_sort_by_axis(right, axis, true, false);
@@ -278,11 +277,9 @@ int node_rsearch(struct node *node, NUMTYPE key) {
 
 // unionedArea returns the area of two rects expanded
 double rect_unioned_area(struct rect *rect, struct rect *other) {
-    double area = (double)MAX(rect->max[0], other->max[0]) - 
-                  (double)MIN(rect->min[0], other->min[0]);
+    double area = (double)MAX(rect->max[0], other->max[0]) - (double)MIN(rect->min[0], other->min[0]);
     for (int i = 1; i < DIMS; i++) {
-        area *= (double)MAX(rect->max[i], other->max[i]) - 
-                (double)MIN(rect->min[i], other->min[i]);
+        area *= (double)MAX(rect->max[i], other->max[i]) - (double)MIN(rect->min[i], other->min[i]);
     }
     return area;
 }
@@ -296,8 +293,7 @@ int node_choose_least_enlargement(struct node *node, struct rect *ir) {
         double uarea = rect_unioned_area(&node->rects[i], ir);
         double area = rect_area(&node->rects[i]);
         double enlargement = uarea - area;
-        if (j == -1 || enlargement < jenlargement || (!(enlargement > jenlargement) && area < jarea)) 
-        {
+        if (j == -1 || enlargement < jenlargement || (!(enlargement > jenlargement) && area < jarea)) {
             j = i;
             jenlargement = enlargement;
             jarea = area;
@@ -327,7 +323,7 @@ int node_choose_subtree(struct node *node, struct rect *ir) {
             }
         }
     }
-    // Fallback to using che "choose least enlargment" algorithm.
+    // Fallback to using the "choose least enlargment" algorithm.
     return node_choose_least_enlargement(node, ir);
 }
 
@@ -355,7 +351,6 @@ int node_order_to_left(struct node *node, int index) {
     return index;
 }
 
-// node_insert returns false if out of memory
 bool node_insert(struct rtree *tr, struct rect *nr, struct node *node, struct rect *ir, struct item item, bool *split, bool *grown) {
     *split = false;
     *grown = false;
@@ -365,10 +360,8 @@ bool node_insert(struct rtree *tr, struct rect *nr, struct node *node, struct re
             return true;
         }
         int index = node_rsearch(node, ir->min[0]);
-        memmove(&node->rects[index+1], &node->rects[index], 
-            (node->count-index)*sizeof(struct rect));
-        memmove(&node->items[index+1], &node->items[index], 
-            (node->count-index)*sizeof(struct item));
+        memmove(&node->rects[index+1], &node->rects[index], (node->count-index)*sizeof(struct rect));
+        memmove(&node->items[index+1], &node->items[index], (node->count-index)*sizeof(struct item));
         node->rects[index] = *ir;
         node->items[index] = item;
         node->count++;
@@ -423,14 +416,12 @@ struct rtree *rtree_new_with_allocator(void *(*cust_malloc)(size_t), void (*cust
     return tr;
 }
 
-struct rtree *rtree_new() {
-    return rtree_new_with_allocator(NULL, NULL);
-}
+struct rtree *rtree_new() { return rtree_new_with_allocator(NULL, NULL); }
 
 bool rtree_insert(struct rtree *tr, const NUMTYPE *min, const NUMTYPE *max, const DATATYPE data) {
     struct rect rect;
-    memcpy(&rect.min[0], min, sizeof(NUMTYPE)*DIMS);
-    memcpy(&rect.max[0], max?max:min, sizeof(NUMTYPE)*DIMS);
+    memcpy(&rect.min[0], min, sizeof(NUMTYPE) * DIMS);
+    memcpy(&rect.max[0], max ? max : min, sizeof(NUMTYPE) * DIMS);
     struct item item;
     memcpy(&item.data, &data, sizeof(DATATYPE));
     if (!tr->root) {
@@ -439,8 +430,7 @@ bool rtree_insert(struct rtree *tr, const NUMTYPE *min, const NUMTYPE *max, cons
         tr->root = new_root;
         tr->rect = rect;
     }
-    bool split = false;
-    bool grown = false;
+    bool split = false, grown = false;
     if (!node_insert(tr, &tr->rect, tr->root, &rect, item, &split, &grown)) { return false; }
     if (split) {
         struct node *new_root = node_new(tr, BRANCH);
@@ -502,11 +492,7 @@ void rtree_search(struct rtree *tr, const NUMTYPE *min, const NUMTYPE *max, bool
 
 size_t rtree_count(struct rtree *tr) { return tr->count; }
 
-void node_delete(struct rtree *tr, struct rect *nr, struct node *node, 
-    struct rect *ir, struct item item, bool *removed, bool *shrunk,
-    int (*compare)(const DATATYPE a, const DATATYPE b, void *udata),
-    void *udata)
-{
+void node_delete(struct rtree *tr, struct rect *nr, struct node *node, struct rect *ir, struct item item, bool *removed, bool *shrunk, int (*compare)(const DATATYPE a, const DATATYPE b, void *udata), void *udata) {
     *removed = false;
     *shrunk = false;
     if (node->kind == LEAF) {
@@ -521,10 +507,8 @@ void node_delete(struct rtree *tr, struct rect *nr, struct node *node,
                 continue;
             }
             // Found the target item to delete.
-            memmove(&node->rects[i], &node->rects[i+1], 
-                (node->count-(i+1))*sizeof(struct rect));
-            memmove(&node->items[i], &node->items[i+1], 
-                (node->count-(i+1))*sizeof(struct item));
+            memmove(&node->rects[i], &node->rects[i+1], (node->count-(i+1))*sizeof(struct rect));
+            memmove(&node->items[i], &node->items[i+1], (node->count-(i+1))*sizeof(struct item));
             node->count--;
             if (rect_onedge(ir, nr)) {
                 // The item rect was on the edge of the node rect.
@@ -543,18 +527,15 @@ void node_delete(struct rtree *tr, struct rect *nr, struct node *node,
             continue;
         }
         struct rect crect = node->rects[i];
-        node_delete(tr, &node->rects[i], node->children[i], ir, item, removed,
-            shrunk, compare, udata);
+        node_delete(tr, &node->rects[i], node->children[i], ir, item, removed, shrunk, compare, udata);
         if (!*removed) {
             continue;
         }
         if (node->children[i]->count == 0) {
             // underflow. 
             node_free(tr, node->children[i]);
-            memmove(&node->rects[i], &node->rects[i+1], 
-                (node->count-(i+1))*sizeof(struct rect));
-            memmove(&node->children[i], &node->children[i+1], 
-                (node->count-(i+1))*sizeof(struct node *));
+            memmove(&node->rects[i], &node->rects[i+1], (node->count-(i+1))*sizeof(struct rect));
+            memmove(&node->children[i], &node->children[i+1], (node->count-(i+1))*sizeof(struct node *));
             node->count--;
             *nr = node_rect_calc(node);
             *shrunk = true;
@@ -572,8 +553,7 @@ void node_delete(struct rtree *tr, struct rect *nr, struct node *node,
     return;
 }
 
-void rtree_delete(struct rtree *tr, const NUMTYPE *min, const NUMTYPE *max, const DATATYPE data)
-{
+void rtree_delete(struct rtree *tr, const NUMTYPE *min, const NUMTYPE *max, const DATATYPE data) {
     struct rect rect;
     memcpy(&rect.min[0], min, sizeof(NUMTYPE)*DIMS);
     memcpy(&rect.max[0], max?max:min, sizeof(NUMTYPE)*DIMS);
@@ -617,9 +597,7 @@ void node_check_order(struct node *node) {
 }
 
 void rtree_check_order(struct rtree *tr) {
-    if (tr->root) {
-        node_check_order(tr->root);
-    }
+    if (tr->root) { node_check_order(tr->root); }
 }
 
 void node_check_rect(struct rect *rect, struct node *node) {
@@ -651,7 +629,6 @@ void rtree_check(struct rtree *tr) {
 // N values as the maximum corner of the rect, where N is the number of
 // dimensions.
 // When inserting points, the max coordinates is optional (set to NULL).
-// Returns false if the system is out of memory.
 
 // rtree_count returns the number of items in the rtree.
 
