@@ -2,17 +2,11 @@ name: Build
 on: push
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build application
-        run: make
   run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Build application
+      - name: Build & run application
         run: make
       - name: Run application
         run: ./main
