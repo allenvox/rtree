@@ -82,7 +82,6 @@ bool rect_equals(struct rect *rect, struct rect *other) {
     return true;
 }
 
-// swap two rectanlges
 void node_swap(struct node *node, int i, int j) {
     struct rect tmp = node->rects[i];
     node->rects[i] = node->rects[j];
@@ -99,11 +98,8 @@ void node_swap(struct node *node, int i, int j) {
 }
 
 void node_qsort(struct node *node, int s, int e, int axis, bool rev, bool max) {
-    int nrects = e - s;
+    int nrects = e - s, left = 0, right = nrects - 1, pivot = nrects / 2;
     if (nrects < 2) { return; }
-    int left = 0;
-    int right = nrects-1;
-    int pivot = nrects / 2;
     node_swap(node, s+pivot, s+right);
     struct rect *rects = &node->rects[s];
     if (!rev) {
@@ -144,12 +140,10 @@ void node_qsort(struct node *node, int s, int e, int axis, bool rev, bool max) {
     node_qsort(node, s + left + 1, e, axis, rev, max);
 }
 
-// sort the node rectangles
 void node_sort(struct node *node) {
     node_qsort(node, 0, node->count, 0, false, false);
 }
 
-// sort the node rectangles by the axis. used during splits
 void node_sort_by_axis(struct node *node, int axis, bool rev, bool max) {
     node_qsort(node, 0, node->count, axis, rev, max);
 }
@@ -169,13 +163,13 @@ int rect_largest_axis(struct rect *rect) {
 
 void node_move_rect_at_index_into(struct node *from, int index, struct node *into) {
     into->rects[into->count] = from->rects[index];
-    from->rects[index] = from->rects[from->count-1];
+    from->rects[index] = from->rects[from->count - 1];
     if (from->kind == LEAF) {
         into->items[into->count] = from->items[index];
-        from->items[index] = from->items[from->count-1];
+        from->items[index] = from->items[from->count - 1];
     } else {
         into->children[into->count] = from->children[index];
-        from->children[index] = from->children[from->count-1];
+        from->children[index] = from->children[from->count - 1];
     }
     from->count--;
     into->count++;
@@ -188,23 +182,19 @@ struct node *node_split_largest_axis_edge_snap(struct rtree *tr, struct rect *re
     for (int i = 0; i < left->count; i++) {
         double min_dist = (double)left->rects[i].min[axis] - (double)rect->min[axis];
         double max_dist = (double)rect->max[axis] - (double)left->rects[i].max[axis];
-        if (min_dist < max_dist) {
-            // stay left
-        } else {
-            // move to right
+        if (min_dist < max_dist) { // stay left
+        } else {                   // move to right
             node_move_rect_at_index_into(left, i, right);
             i--;
         }
     }
     // make sure that both left and right nodes have at least min_entries by moving items into underflowed nodes
-    if (left->count < MIN_ENTRIES) {
-        // reverse sort by min axis
+    if (left->count < MIN_ENTRIES) { // reverse sort by min axis
         node_sort_by_axis(right, axis, true, false);
         while (left->count < 2) {
             node_move_rect_at_index_into(right, right->count-1, left);
         }
-    } else if (right->count < 2) {
-        // reverse sort by max axis
+    } else if (right->count < 2) { // reverse sort by max axis
         node_sort_by_axis(left, axis, true, true);
         while (right->count < 2) {
             node_move_rect_at_index_into(left, left->count-1, right);
@@ -228,19 +218,17 @@ int node_rsearch(struct node *node, NUMTYPE key) {
     return node->count;
 }
 
-// unionedArea returns the area of two rects expanded
 double rect_unioned_area(struct rect *rect, struct rect *other) {
     double area = (double)MAX(rect->max[0], other->max[0]) - (double)MIN(rect->min[0], other->min[0]);
     for (int i = 1; i < DIMS; i++) {
         area *= (double)MAX(rect->max[i], other->max[i]) - (double)MIN(rect->min[i], other->min[i]);
     }
-    return area;
+    return area; // returns the area of two rects expanded
 }
 
 int node_choose_least_enlargement(struct node *node, struct rect *ir) {
     int j = -1;
-    double jenlargement = 0;
-    double jarea = 0;
+    double jenlargement = 0, jarea = 0;
     for (int i = 0; i < node->count; i++) {
         // calculate the enlarged area
         double uarea = rect_unioned_area(&node->rects[i], ir);
@@ -256,7 +244,7 @@ int node_choose_least_enlargement(struct node *node, struct rect *ir) {
 }
 
 int node_choose_subtree(struct node *node, struct rect *ir) {
-    // Take a quick look for the first node that contain the rect.
+    // take a quick look for the first node that contain the rect.
     if (FAST_CHOOSER == 1) {
         int index = -1;
         double narea;
@@ -276,7 +264,7 @@ int node_choose_subtree(struct node *node, struct rect *ir) {
             }
         }
     }
-    // Fallback to using the "choose least enlargment" algorithm.
+    // fallback to using the choose-least-enlargment algorithm
     return node_choose_least_enlargement(node, ir);
 }
 
@@ -304,6 +292,8 @@ int node_order_to_left(struct node *node, int index) {
     return index;
 }
 
+// performs a copy of the data from args[1] & args[2], expects a rectangle (double[] double[])
+// first N values are min corner, next N values - max corner, N - num of dimensions (max coords are optional)
 bool node_insert(struct rtree *tr, struct rect *nr, struct node *node, struct rect *ir, struct item item, bool *split, bool *grown) {
     *split = false;
     *grown = false;
@@ -321,8 +311,7 @@ bool node_insert(struct rtree *tr, struct rect *nr, struct node *node, struct re
         *grown = !rect_contains(nr, ir);
         return true;
     }
-    // Choose a subtree for inserting the rectangle.
-    int index = node_choose_subtree(node, ir);
+    int index = node_choose_subtree(node, ir); // choose a subtree for inserting the rectangle
     if (!node_insert(tr, &node->rects[index], node->children[index], ir, item, split, grown)) {
         return false;
     }
@@ -330,9 +319,8 @@ bool node_insert(struct rtree *tr, struct rect *nr, struct node *node, struct re
         if (node->count == MAX_ENTRIES) {
             return true;
         }
-        // split the child node
         struct node *left = node->children[index];
-        struct node *right = node_split(tr, &node->rects[index], left);
+        struct node *right = node_split(tr, &node->rects[index], left); // split child node
         if (!right) {
             return false;
         }
@@ -349,8 +337,7 @@ bool node_insert(struct rtree *tr, struct rect *nr, struct node *node, struct re
         node_order_to_right(node, index);
         return node_insert(tr, nr, node, ir, item, split, grown);
     }
-    if (*grown) {
-        // The child rectangle must expand to accomadate the new item.
+    if (*grown) { // child rectangle must expand to accomadate new item
         rect_expand(&node->rects[index], ir);
         node_order_to_left(node, index);
         *grown = !rect_contains(nr, ir);
@@ -459,16 +446,13 @@ void node_delete(struct rtree *tr, struct rect *nr, struct node *node, struct re
             if (cmp != 0) {
                 continue;
             }
-            // Found the target item to delete.
+            // found the target item to delete
             memmove(&node->rects[i], &node->rects[i+1], (node->count-(i+1))*sizeof(struct rect));
             memmove(&node->items[i], &node->items[i+1], (node->count-(i+1))*sizeof(struct item));
             node->count--;
-            if (rect_onedge(ir, nr)) {
-                // The item rect was on the edge of the node rect.
-                // We need to recalculate the node rect.
-                *nr = node_rect_calc(node);
-                // Notify the caller that we shrunk the rect.
-                *shrunk = true; 
+            if (rect_onedge(ir, nr)) {      // item was on the edge of node rect
+                *nr = node_rect_calc(node); // recalculation of node rect
+                *shrunk = true;             // notify the caller that rect is shrunk
             }
             *removed = true;
             return;
@@ -484,8 +468,7 @@ void node_delete(struct rtree *tr, struct rect *nr, struct node *node, struct re
         if (!*removed) {
             continue;
         }
-        if (node->children[i]->count == 0) {
-            // underflow. 
+        if (node->children[i]->count == 0) { // underflow
             node_free(tr, node->children[i]);
             memmove(&node->rects[i], &node->rects[i+1], (node->count-(i+1))*sizeof(struct rect));
             memmove(&node->children[i], &node->children[i+1], (node->count-(i+1))*sizeof(struct node *));
@@ -506,10 +489,11 @@ void node_delete(struct rtree *tr, struct rect *nr, struct node *node, struct re
     return;
 }
 
+// search the tree for an item contained within provided rect, perform a binary comparison of its data to provided, first item found is deleted
 void rtree_delete(struct rtree *tr, const NUMTYPE *min, const NUMTYPE *max, const DATATYPE data) {
     struct rect rect;
-    memcpy(&rect.min[0], min, sizeof(NUMTYPE)*DIMS);
-    memcpy(&rect.max[0], max?max:min, sizeof(NUMTYPE)*DIMS);
+    memcpy(&rect.min[0], min, sizeof(NUMTYPE) * DIMS);
+    memcpy(&rect.max[0], max ? max : min, sizeof(NUMTYPE) * DIMS);
     struct item item;
     memcpy(&item.data, &data, sizeof(DATATYPE));
     if (!tr->root) { return; }
@@ -573,22 +557,3 @@ void rtree_check(struct rtree *tr) {
     rtree_check_order(tr);
     rtree_check_rects(tr);
 }
-// rtree_insert inserts an item into the rtree. 
-// This operation performs a copy of the data that is pointed to in the second
-// and third arguments. The R-tree expects a rectangle, which is two arrays of
-// doubles. The first N values as the minimum corner of the rect, and the next
-// N values as the maximum corner of the rect, where N is the number of
-// dimensions.
-// When inserting points, the max coordinates is optional (set to NULL).
-
-// rtree_count returns the number of items in the rtree.
-
-// rtree_delete deletes an item from the rtree. 
-// This searches the tree for an item that is contained within the provided
-// rectangle, and perform a binary comparison of its data to the provided
-// data. The first item that is found is deleted.
-
-// rtree_delete_with_comparator deletes an item from the rtree.
-// This searches the tree for an item that is contained within the provided
-// rectangle, and perform a comparison of its data to the provided data using
-// a compare function. The first item that is found is deleted.
