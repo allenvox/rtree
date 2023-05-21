@@ -100,20 +100,20 @@ void node_swap(struct node *node, int i, int j) {
 void node_qsort(struct node *node, int s, int e, int axis, bool rev, bool max) {
     int nrects = e - s, left = 0, right = nrects - 1, pivot = nrects / 2;
     if (nrects < 2) { return; }
-    node_swap(node, s+pivot, s+right);
+    node_swap(node, s + pivot, s + right);
     struct rect *rects = &node->rects[s];
     if (!rev) {
         if (!max) {
             for (int i = 0; i < nrects; i++) {
                 if (rects[i].min[axis] < rects[right].min[axis]) {
-                    node_swap(node, s+i, s+left);
+                    node_swap(node, s + i, s + left);
                     left++;
                 }
             }
         } else {
             for (int i = 0; i < nrects; i++) {
                 if (rects[i].max[axis] < rects[right].max[axis]) {
-                    node_swap(node, s+i, s+left);
+                    node_swap(node, s + i, s + left);
                     left++;
                 }
             }
@@ -122,14 +122,14 @@ void node_qsort(struct node *node, int s, int e, int axis, bool rev, bool max) {
         if (!max) {
             for (int i = 0; i < nrects; i++) {
                 if (rects[right].min[axis] < rects[i].min[axis]) {
-                    node_swap(node, s+i, s+left);
+                    node_swap(node, s + i, s + left);
                     left++;
                 }
             }
         } else {
             for (int i = 0; i < nrects; i++) {
                 if (rects[right].max[axis] < rects[i].max[axis]) {
-                    node_swap(node, s+i, s+left);
+                    node_swap(node, s + i, s + left);
                     left++;
                 }
             }
@@ -277,16 +277,16 @@ struct rect node_rect_calc(struct node *node) {
 }
 
 int node_order_to_right(struct node *node, int index) {
-    while (index < node->count-1 && node->rects[index+1].min[0] < node->rects[index].min[0]) {
-        node_swap(node, index+1, index);
+    while (index < node->count - 1 && node->rects[index + 1].min[0] < node->rects[index].min[0]) {
+        node_swap(node, index + 1, index);
         index++;
     }
     return index;
 }
 
 int node_order_to_left(struct node *node, int index) {
-    while (index > 0 && node->rects[index].min[0] < node->rects[index-1].min[0]) {
-        node_swap(node,index, index-1);
+    while (index > 0 && node->rects[index].min[0] < node->rects[index - 1].min[0]) {
+        node_swap(node,index, index - 1);
         index--;
     }
     return index;
@@ -303,8 +303,8 @@ bool node_insert(struct rtree *tr, struct rect *nr, struct node *node, struct re
             return true;
         }
         int index = node_rsearch(node, ir->min[0]);
-        memmove(&node->rects[index+1], &node->rects[index], (node->count-index)*sizeof(struct rect));
-        memmove(&node->items[index+1], &node->items[index], (node->count-index)*sizeof(struct item));
+        memmove(&node->rects[index + 1], &node->rects[index], (node->count-index) * sizeof(struct rect));
+        memmove(&node->items[index + 1], &node->items[index], (node->count-index) * sizeof(struct item));
         node->rects[index] = *ir;
         node->items[index] = item;
         node->count++;
@@ -325,13 +325,13 @@ bool node_insert(struct rtree *tr, struct rect *nr, struct node *node, struct re
             return false;
         }
         node->rects[index] = node_rect_calc(left);
-        memmove(&node->rects[index+2], &node->rects[index+1], (node->count-(index+1))*sizeof(struct rect));
-        memmove(&node->children[index+2], &node->children[index+1], (node->count-(index+1))*sizeof(struct node*));
-        node->rects[index+1] = node_rect_calc(right);
-        node->children[index+1] = right;
+        memmove(&node->rects[index + 2], &node->rects[index + 1], (node->count - (index + 1)) * sizeof(struct rect));
+        memmove(&node->children[index + 2], &node->children[index + 1], (node->count - (index + 1)) * sizeof(struct node*));
+        node->rects[index + 1] = node_rect_calc(right);
+        node->children[index + 1] = right;
         node->count++;
-        if (node->rects[index].min[0] > node->rects[index+1].min[0]) {
-            node_swap(node, index+1, index);
+        if (node->rects[index].min[0] > node->rects[index + 1].min[0]) {
+            node_swap(node, index + 1, index);
         }
         index++;
         node_order_to_right(node, index);
@@ -423,8 +423,8 @@ bool node_search(struct node *node, struct rect *rect, bool (*iter)(const NUMTYP
 
 void rtree_search(struct rtree *tr, const NUMTYPE *min, const NUMTYPE *max, bool (*iter)(const NUMTYPE *min, const NUMTYPE *max, const DATATYPE data, void *udata), void *udata) {
     struct rect rect;
-    memcpy(&rect.min[0], min, sizeof(NUMTYPE)*DIMS);
-    memcpy(&rect.max[0], max?max:min, sizeof(NUMTYPE)*DIMS);
+    memcpy(&rect.min[0], min, sizeof(NUMTYPE) * DIMS);
+    memcpy(&rect.max[0], max ? max : min, sizeof(NUMTYPE) * DIMS);
     if (tr->root && rect_intersects(&tr->rect, &rect)) {
         node_search(tr->root, &rect, iter, udata);
     }
@@ -447,8 +447,8 @@ void node_delete(struct rtree *tr, struct rect *nr, struct node *node, struct re
                 continue;
             }
             // found the target item to delete
-            memmove(&node->rects[i], &node->rects[i+1], (node->count-(i+1))*sizeof(struct rect));
-            memmove(&node->items[i], &node->items[i+1], (node->count-(i+1))*sizeof(struct item));
+            memmove(&node->rects[i], &node->rects[i + 1], (node->count - (i + 1)) * sizeof(struct rect));
+            memmove(&node->items[i], &node->items[i + 1], (node->count - (i + 1)) * sizeof(struct item));
             node->count--;
             if (rect_onedge(ir, nr)) {      // item was on the edge of node rect
                 *nr = node_rect_calc(node); // recalculation of node rect
@@ -470,8 +470,8 @@ void node_delete(struct rtree *tr, struct rect *nr, struct node *node, struct re
         }
         if (node->children[i]->count == 0) { // underflow
             node_free(tr, node->children[i]);
-            memmove(&node->rects[i], &node->rects[i+1], (node->count-(i+1))*sizeof(struct rect));
-            memmove(&node->children[i], &node->children[i+1], (node->count-(i+1))*sizeof(struct node *));
+            memmove(&node->rects[i], &node->rects[i + 1], (node->count - (i + 1)) * sizeof(struct rect));
+            memmove(&node->children[i], &node->children[i + 1], (node->count - (i + 1)) * sizeof(struct node *));
             node->count--;
             *nr = node_rect_calc(node);
             *shrunk = true;
@@ -518,42 +518,4 @@ void rtree_delete(struct rtree *tr, const NUMTYPE *min, const NUMTYPE *max, cons
             tr->rect = node_rect_calc(tr->root);
         }
     }
-}
-
-void node_check_order(struct node *node) {
-    for (int i = 1; i < node->count; i++) {
-        if (node->rects[i].min[0] < node->rects[i-1].min[0]) {
-            panic("out of order")
-        }
-        if (node->kind == BRANCH) {
-            node_check_order(node->children[i]);
-        }
-    }
-}
-
-void rtree_check_order(struct rtree *tr) {
-    if (tr->root) { node_check_order(tr->root); }
-}
-
-void node_check_rect(struct rect *rect, struct node *node) {
-    struct rect rect2 = node_rect_calc(node);
-    if (!rect_equals(rect, &rect2)){
-        panic("invalid rect")
-    }
-    if (node->kind == BRANCH) {
-        for (int i = 0; i < node->count; i++) {
-            node_check_rect(&node->rects[i], node->children[i]);
-        }
-    }
-}
-
-void rtree_check_rects(struct rtree *tr) {
-    if (tr->root) {
-        node_check_rect(&tr->rect, tr->root);
-    }
-}
-
-void rtree_check(struct rtree *tr) {
-    rtree_check_order(tr);
-    rtree_check_rects(tr);
 }
