@@ -183,7 +183,7 @@ struct node *node_split_largest_axis_edge_snap(struct rtree *tr, struct rect *re
         double min_dist = (double)left->rects[i].min[axis] - (double)rect->min[axis];
         double max_dist = (double)rect->max[axis] - (double)left->rects[i].max[axis];
         if (min_dist < max_dist) { // stay left
-        } else {                   // move to right
+        } else {                   // move right
             node_move_rect_at_index_into(left, i, right);
             i--;
         }
